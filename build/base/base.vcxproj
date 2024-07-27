@@ -1,0 +1,322 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="MinSizeRel|x64">
+      <Configuration>MinSizeRel</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="RelWithDebInfo|x64">
+      <Configuration>RelWithDebInfo</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{46A5DE76-1804-3D03-8E7D-4C84DF901298}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
+    <Platform>x64</Platform>
+    <ProjectName>base</ProjectName>
+    <VCProjectUpgraderObjectName>NoUpgrade</VCProjectUpgraderObjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v141</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v141</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v141</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v141</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.20506.1</_ProjectFileVersion>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">H:\Study\Vulkan Ray Query\build\base\Debug\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">base.dir\Debug\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">base</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">.lib</TargetExt>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">H:\Study\Vulkan Ray Query\build\base\Release\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">base.dir\Release\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">base</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='Release|x64'">.lib</TargetExt>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">H:\Study\Vulkan Ray Query\build\base\MinSizeRel\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">base.dir\MinSizeRel\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">base</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">.lib</TargetExt>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">H:\Study\Vulkan Ray Query\build\base\RelWithDebInfo\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">base.dir\RelWithDebInfo\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">base</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">.lib</TargetExt>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>H:\Study\Vulkan Ray Query\external;H:\Study\Vulkan Ray Query\external\glm;H:\Study\Vulkan Ray Query\external\gli;H:\Study\Vulkan Ray Query\external\imgui;H:\Study\Vulkan Ray Query\external\tinygltf;H:\Study\Vulkan Ray Query\external\ktx\include;H:\Study\Vulkan Ray Query\external\ktx\other_include;H:\Study\Vulkan Ray Query\base;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
+      <LanguageStandard>stdcpp14</LanguageStandard>
+      <Optimization>Disabled</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <UseFullPaths>false</UseFullPaths>
+      <WarningLevel>Level3</WarningLevel>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;VK_USE_PLATFORM_WIN32_KHR;NOMINMAX;_USE_MATH_DEFINES;_CRT_SECURE_NO_WARNINGS;VK_EXAMPLE_ASSETS_DIR="H:/Study/Vulkan Ray Query/assets/";VK_EXAMPLE_SHADERS_DIR="H:/Study/Vulkan Ray Query/shaders/";CMAKE_INTDIR="Debug"</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_DEBUG;_WINDOWS;VK_USE_PLATFORM_WIN32_KHR;NOMINMAX;_USE_MATH_DEFINES;_CRT_SECURE_NO_WARNINGS;VK_EXAMPLE_ASSETS_DIR=\"H:/Study/Vulkan Ray Query/assets/\";VK_EXAMPLE_SHADERS_DIR=\"H:/Study/Vulkan Ray Query/shaders/\";CMAKE_INTDIR=\"Debug\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>H:\Study\Vulkan Ray Query\external;H:\Study\Vulkan Ray Query\external\glm;H:\Study\Vulkan Ray Query\external\gli;H:\Study\Vulkan Ray Query\external\imgui;H:\Study\Vulkan Ray Query\external\tinygltf;H:\Study\Vulkan Ray Query\external\ktx\include;H:\Study\Vulkan Ray Query\external\ktx\other_include;H:\Study\Vulkan Ray Query\base;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>H:\Study\Vulkan Ray Query\external;H:\Study\Vulkan Ray Query\external\glm;H:\Study\Vulkan Ray Query\external\gli;H:\Study\Vulkan Ray Query\external\imgui;H:\Study\Vulkan Ray Query\external\tinygltf;H:\Study\Vulkan Ray Query\external\ktx\include;H:\Study\Vulkan Ray Query\external\ktx\other_include;H:\Study\Vulkan Ray Query\base;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Lib>
+      <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>H:\Study\Vulkan Ray Query\external;H:\Study\Vulkan Ray Query\external\glm;H:\Study\Vulkan Ray Query\external\gli;H:\Study\Vulkan Ray Query\external\imgui;H:\Study\Vulkan Ray Query\external\tinygltf;H:\Study\Vulkan Ray Query\external\ktx\include;H:\Study\Vulkan Ray Query\external\ktx\other_include;H:\Study\Vulkan Ray Query\base;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <LanguageStandard>stdcpp14</LanguageStandard>
+      <Optimization>MaxSpeed</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <UseFullPaths>false</UseFullPaths>
+      <WarningLevel>Level3</WarningLevel>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;VK_USE_PLATFORM_WIN32_KHR;NOMINMAX;_USE_MATH_DEFINES;NDEBUG;_CRT_SECURE_NO_WARNINGS;VK_EXAMPLE_ASSETS_DIR="H:/Study/Vulkan Ray Query/assets/";VK_EXAMPLE_SHADERS_DIR="H:/Study/Vulkan Ray Query/shaders/";CMAKE_INTDIR="Release"</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <DebugInformationFormat>
+      </DebugInformationFormat>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;VK_USE_PLATFORM_WIN32_KHR;NOMINMAX;_USE_MATH_DEFINES;NDEBUG;_CRT_SECURE_NO_WARNINGS;VK_EXAMPLE_ASSETS_DIR=\"H:/Study/Vulkan Ray Query/assets/\";VK_EXAMPLE_SHADERS_DIR=\"H:/Study/Vulkan Ray Query/shaders/\";CMAKE_INTDIR=\"Release\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>H:\Study\Vulkan Ray Query\external;H:\Study\Vulkan Ray Query\external\glm;H:\Study\Vulkan Ray Query\external\gli;H:\Study\Vulkan Ray Query\external\imgui;H:\Study\Vulkan Ray Query\external\tinygltf;H:\Study\Vulkan Ray Query\external\ktx\include;H:\Study\Vulkan Ray Query\external\ktx\other_include;H:\Study\Vulkan Ray Query\base;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>H:\Study\Vulkan Ray Query\external;H:\Study\Vulkan Ray Query\external\glm;H:\Study\Vulkan Ray Query\external\gli;H:\Study\Vulkan Ray Query\external\imgui;H:\Study\Vulkan Ray Query\external\tinygltf;H:\Study\Vulkan Ray Query\external\ktx\include;H:\Study\Vulkan Ray Query\external\ktx\other_include;H:\Study\Vulkan Ray Query\base;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Lib>
+      <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>H:\Study\Vulkan Ray Query\external;H:\Study\Vulkan Ray Query\external\glm;H:\Study\Vulkan Ray Query\external\gli;H:\Study\Vulkan Ray Query\external\imgui;H:\Study\Vulkan Ray Query\external\tinygltf;H:\Study\Vulkan Ray Query\external\ktx\include;H:\Study\Vulkan Ray Query\external\ktx\other_include;H:\Study\Vulkan Ray Query\base;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
+      <LanguageStandard>stdcpp14</LanguageStandard>
+      <Optimization>MinSpace</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <UseFullPaths>false</UseFullPaths>
+      <WarningLevel>Level3</WarningLevel>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;VK_USE_PLATFORM_WIN32_KHR;NOMINMAX;_USE_MATH_DEFINES;NDEBUG;_CRT_SECURE_NO_WARNINGS;VK_EXAMPLE_ASSETS_DIR="H:/Study/Vulkan Ray Query/assets/";VK_EXAMPLE_SHADERS_DIR="H:/Study/Vulkan Ray Query/shaders/";CMAKE_INTDIR="MinSizeRel"</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <DebugInformationFormat>
+      </DebugInformationFormat>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;VK_USE_PLATFORM_WIN32_KHR;NOMINMAX;_USE_MATH_DEFINES;NDEBUG;_CRT_SECURE_NO_WARNINGS;VK_EXAMPLE_ASSETS_DIR=\"H:/Study/Vulkan Ray Query/assets/\";VK_EXAMPLE_SHADERS_DIR=\"H:/Study/Vulkan Ray Query/shaders/\";CMAKE_INTDIR=\"MinSizeRel\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>H:\Study\Vulkan Ray Query\external;H:\Study\Vulkan Ray Query\external\glm;H:\Study\Vulkan Ray Query\external\gli;H:\Study\Vulkan Ray Query\external\imgui;H:\Study\Vulkan Ray Query\external\tinygltf;H:\Study\Vulkan Ray Query\external\ktx\include;H:\Study\Vulkan Ray Query\external\ktx\other_include;H:\Study\Vulkan Ray Query\base;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>H:\Study\Vulkan Ray Query\external;H:\Study\Vulkan Ray Query\external\glm;H:\Study\Vulkan Ray Query\external\gli;H:\Study\Vulkan Ray Query\external\imgui;H:\Study\Vulkan Ray Query\external\tinygltf;H:\Study\Vulkan Ray Query\external\ktx\include;H:\Study\Vulkan Ray Query\external\ktx\other_include;H:\Study\Vulkan Ray Query\base;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Lib>
+      <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>H:\Study\Vulkan Ray Query\external;H:\Study\Vulkan Ray Query\external\glm;H:\Study\Vulkan Ray Query\external\gli;H:\Study\Vulkan Ray Query\external\imgui;H:\Study\Vulkan Ray Query\external\tinygltf;H:\Study\Vulkan Ray Query\external\ktx\include;H:\Study\Vulkan Ray Query\external\ktx\other_include;H:\Study\Vulkan Ray Query\base;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
+      <LanguageStandard>stdcpp14</LanguageStandard>
+      <Optimization>MaxSpeed</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <UseFullPaths>false</UseFullPaths>
+      <WarningLevel>Level3</WarningLevel>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;VK_USE_PLATFORM_WIN32_KHR;NOMINMAX;_USE_MATH_DEFINES;NDEBUG;_CRT_SECURE_NO_WARNINGS;VK_EXAMPLE_ASSETS_DIR="H:/Study/Vulkan Ray Query/assets/";VK_EXAMPLE_SHADERS_DIR="H:/Study/Vulkan Ray Query/shaders/";CMAKE_INTDIR="RelWithDebInfo"</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;VK_USE_PLATFORM_WIN32_KHR;NOMINMAX;_USE_MATH_DEFINES;NDEBUG;_CRT_SECURE_NO_WARNINGS;VK_EXAMPLE_ASSETS_DIR=\"H:/Study/Vulkan Ray Query/assets/\";VK_EXAMPLE_SHADERS_DIR=\"H:/Study/Vulkan Ray Query/shaders/\";CMAKE_INTDIR=\"RelWithDebInfo\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>H:\Study\Vulkan Ray Query\external;H:\Study\Vulkan Ray Query\external\glm;H:\Study\Vulkan Ray Query\external\gli;H:\Study\Vulkan Ray Query\external\imgui;H:\Study\Vulkan Ray Query\external\tinygltf;H:\Study\Vulkan Ray Query\external\ktx\include;H:\Study\Vulkan Ray Query\external\ktx\other_include;H:\Study\Vulkan Ray Query\base;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>H:\Study\Vulkan Ray Query\external;H:\Study\Vulkan Ray Query\external\glm;H:\Study\Vulkan Ray Query\external\gli;H:\Study\Vulkan Ray Query\external\imgui;H:\Study\Vulkan Ray Query\external\tinygltf;H:\Study\Vulkan Ray Query\external\ktx\include;H:\Study\Vulkan Ray Query\external\ktx\other_include;H:\Study\Vulkan Ray Query\base;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Lib>
+      <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <CustomBuild Include="H:\Study\Vulkan Ray Query\base\CMakeLists.txt">
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Building Custom Rule H:/Study/Vulkan Ray Query/base/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">setlocal
+D:\Cmake\bin\cmake.exe "-SH:/Study/Vulkan Ray Query" "-BH:/Study/Vulkan Ray Query/build" --check-stamp-file "H:/Study/Vulkan Ray Query/build/base/CMakeFiles/generate.stamp"
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">H:\Study\Vulkan Ray Query\build\base\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Building Custom Rule H:/Study/Vulkan Ray Query/base/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">setlocal
+D:\Cmake\bin\cmake.exe "-SH:/Study/Vulkan Ray Query" "-BH:/Study/Vulkan Ray Query/build" --check-stamp-file "H:/Study/Vulkan Ray Query/build/base/CMakeFiles/generate.stamp"
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">H:\Study\Vulkan Ray Query\build\base\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">Building Custom Rule H:/Study/Vulkan Ray Query/base/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">setlocal
+D:\Cmake\bin\cmake.exe "-SH:/Study/Vulkan Ray Query" "-BH:/Study/Vulkan Ray Query/build" --check-stamp-file "H:/Study/Vulkan Ray Query/build/base/CMakeFiles/generate.stamp"
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">H:\Study\Vulkan Ray Query\build\base\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">Building Custom Rule H:/Study/Vulkan Ray Query/base/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">setlocal
+D:\Cmake\bin\cmake.exe "-SH:/Study/Vulkan Ray Query" "-BH:/Study/Vulkan Ray Query/build" --check-stamp-file "H:/Study/Vulkan Ray Query/build/base/CMakeFiles/generate.stamp"
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">H:\Study\Vulkan Ray Query\build\base\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">false</LinkObjects>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="H:\Study\Vulkan Ray Query\external\imgui\imgui.cpp" />
+    <ClCompile Include="H:\Study\Vulkan Ray Query\external\imgui\imgui_demo.cpp" />
+    <ClCompile Include="H:\Study\Vulkan Ray Query\external\imgui\imgui_draw.cpp" />
+    <ClCompile Include="H:\Study\Vulkan Ray Query\external\imgui\imgui_widgets.cpp" />
+    <ClCompile Include="H:\Study\Vulkan Ray Query\base\Clock.cpp" />
+    <ClInclude Include="H:\Study\Vulkan Ray Query\base\Clock.h" />
+    <ClInclude Include="H:\Study\Vulkan Ray Query\base\CommandLineParser.hpp" />
+    <ClCompile Include="H:\Study\Vulkan Ray Query\base\VulkanAndroid.cpp" />
+    <ClInclude Include="H:\Study\Vulkan Ray Query\base\VulkanAndroid.h" />
+    <ClCompile Include="H:\Study\Vulkan Ray Query\base\VulkanBuffer.cpp" />
+    <ClInclude Include="H:\Study\Vulkan Ray Query\base\VulkanBuffer.h" />
+    <ClCompile Include="H:\Study\Vulkan Ray Query\base\VulkanDebug.cpp" />
+    <ClInclude Include="H:\Study\Vulkan Ray Query\base\VulkanDebug.h" />
+    <ClCompile Include="H:\Study\Vulkan Ray Query\base\VulkanDevice.cpp" />
+    <ClInclude Include="H:\Study\Vulkan Ray Query\base\VulkanDevice.h" />
+    <ClInclude Include="H:\Study\Vulkan Ray Query\base\VulkanFrameBuffer.hpp" />
+    <ClInclude Include="H:\Study\Vulkan Ray Query\base\VulkanInitializers.hpp" />
+    <ClCompile Include="H:\Study\Vulkan Ray Query\base\VulkanRaytracingSample.cpp" />
+    <ClInclude Include="H:\Study\Vulkan Ray Query\base\VulkanRaytracingSample.h" />
+    <ClCompile Include="H:\Study\Vulkan Ray Query\base\VulkanSwapChain.cpp" />
+    <ClInclude Include="H:\Study\Vulkan Ray Query\base\VulkanSwapChain.h" />
+    <ClCompile Include="H:\Study\Vulkan Ray Query\base\VulkanTexture.cpp" />
+    <ClInclude Include="H:\Study\Vulkan Ray Query\base\VulkanTexture.h" />
+    <ClCompile Include="H:\Study\Vulkan Ray Query\base\VulkanTools.cpp" />
+    <ClInclude Include="H:\Study\Vulkan Ray Query\base\VulkanTools.h" />
+    <ClCompile Include="H:\Study\Vulkan Ray Query\base\VulkanUIOverlay.cpp" />
+    <ClInclude Include="H:\Study\Vulkan Ray Query\base\VulkanUIOverlay.h" />
+    <ClCompile Include="H:\Study\Vulkan Ray Query\base\VulkanglTFModel.cpp" />
+    <ClInclude Include="H:\Study\Vulkan Ray Query\base\VulkanglTFModel.h" />
+    <ClInclude Include="H:\Study\Vulkan Ray Query\base\benchmark.hpp" />
+    <ClInclude Include="H:\Study\Vulkan Ray Query\base\camera.hpp" />
+    <ClInclude Include="H:\Study\Vulkan Ray Query\base\frustum.hpp" />
+    <ClInclude Include="H:\Study\Vulkan Ray Query\base\keycodes.hpp" />
+    <ClInclude Include="H:\Study\Vulkan Ray Query\base\threadpool.hpp" />
+    <ClCompile Include="H:\Study\Vulkan Ray Query\base\vulkanexamplebase.cpp" />
+    <ClInclude Include="H:\Study\Vulkan Ray Query\base\vulkanexamplebase.h" />
+    <ClCompile Include="H:\Study\Vulkan Ray Query\external\ktx\lib\texture.c" />
+    <ClCompile Include="H:\Study\Vulkan Ray Query\external\ktx\lib\hashlist.c" />
+    <ClCompile Include="H:\Study\Vulkan Ray Query\external\ktx\lib\checkheader.c" />
+    <ClCompile Include="H:\Study\Vulkan Ray Query\external\ktx\lib\swap.c" />
+    <ClCompile Include="H:\Study\Vulkan Ray Query\external\ktx\lib\memstream.c" />
+    <ClCompile Include="H:\Study\Vulkan Ray Query\external\ktx\lib\filestream.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="H:\Study\Vulkan Ray Query\build\ZERO_CHECK.vcxproj">
+      <Project>{3306BDF6-57AF-3249-9BBD-A61F8B8AB7EE}</Project>
+      <Name>ZERO_CHECK</Name>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

@@ -1,0 +1,31 @@
+﻿  Building Custom Rule H:/Study/Vulkan Ray Query/base/CMakeLists.txt
+  imgui.cpp
+  imgui_demo.cpp
+  imgui_draw.cpp
+  imgui_widgets.cpp
+  Clock.cpp
+H:\Study\Vulkan Ray Query\base\Clock.cpp(42): warning C4244: “return”: 从“const double”转换到“float”，可能丢失数据
+  VulkanAndroid.cpp
+  VulkanBuffer.cpp
+  VulkanDebug.cpp
+  VulkanDevice.cpp
+  VulkanRaytracingSample.cpp
+  VulkanSwapChain.cpp
+  VulkanTexture.cpp
+  VulkanTools.cpp
+  VulkanUIOverlay.cpp
+  VulkanglTFModel.cpp
+  vulkanexamplebase.cpp
+  正在生成代码...
+  texture.c
+H:\Study\Vulkan Ray Query\external\ktx\lib\texture.c(31): warning C4005: “_CRT_SECURE_NO_WARNINGS”: 宏重定义
+  H:\Study\Vulkan Ray Query\external\ktx\lib\texture.c: note: 参见“_CRT_SECURE_NO_WARNINGS”的前一个定义
+h:\study\vulkan ray query\external\ktx\lib\gl_format.h(100): warning C4005: “NOMINMAX”: 宏重定义
+  H:\Study\Vulkan Ray Query\external\ktx\lib\texture.c: note: 参见“NOMINMAX”的前一个定义
+  hashlist.c
+  checkheader.c
+  swap.c
+  memstream.c
+  filestream.c
+  正在生成代码...
+  base.vcxproj -> H:\Study\Vulkan Ray Query\build\base\Release\base.lib

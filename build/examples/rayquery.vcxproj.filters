@@ -1,0 +1,33 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="H:\Study\Vulkan Ray Query\examples\rayquery\rayquery.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="H:\Study\Vulkan Ray Query\examples\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="H:\Study\Vulkan Ray Query\shaders\glsl\rayquery\raytracing.comp">
+      <Filter>Shaders\GLSL</Filter>
+    </None>
+    <None Include="H:\Study\Vulkan Ray Query\shaders\glsl\rayquery\scene.frag">
+      <Filter>Shaders\GLSL</Filter>
+    </None>
+    <None Include="H:\Study\Vulkan Ray Query\shaders\glsl\rayquery\scene.vert">
+      <Filter>Shaders\GLSL</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{6734A5D5-1424-3322-B50C-CDAB1C65CCA1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\GLSL">
+      <UniqueIdentifier>{40CBAE9E-99C6-3667-9570-5B7670FB7AAF}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{B2D94817-883F-341F-BA65-A74E13758146}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

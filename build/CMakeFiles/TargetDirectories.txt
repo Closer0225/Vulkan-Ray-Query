@@ -1,0 +1,4 @@
+H:/Study/Vulkan Ray Query/build/CMakeFiles/ALL_BUILD.dir
+H:/Study/Vulkan Ray Query/build/CMakeFiles/ZERO_CHECK.dir
+H:/Study/Vulkan Ray Query/build/base/CMakeFiles/base.dir
+H:/Study/Vulkan Ray Query/build/examples/CMakeFiles/rayquery.dir

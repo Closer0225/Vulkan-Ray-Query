@@ -1,0 +1,10 @@
+^H:\STUDY\VULKAN RAY QUERY\BUILD\CMAKEFILES\ABEEA938007306BD791653DA46F385DC\GENERATE.STAMP.RULE
+setlocal
+D:\Cmake\bin\cmake.exe "-SH:/Study/Vulkan Ray Query" "-BH:/Study/Vulkan Ray Query/build" --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file "H:/Study/Vulkan Ray Query/build/vulkanExamples.sln"
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
