@@ -22,34 +22,56 @@ public:
 
 	vkglTF::PointModel scene;
 
+	VkPhysicalDeviceScalarBlockLayoutFeatures enabledScalarBlockLayoutFeatures{};
+
 	//graphics
 	VkPipeline pipeline;
 	VkPipelineLayout pipelineLayout;
 	VkDescriptorSet descriptorSet;
 	VkDescriptorSetLayout descriptorSetLayout;
-
-	// compute
-	// Resources for the compute part of the example
+	// compute Resources for the compute part of the example
 	struct {
 		vks::Buffer points;
+		vks::Buffer queries;
+		vks::Buffer sortqueries;
 		vks::Buffer normals;
-		vks::Buffer morton;
-		vks::Buffer index;
-		vks::Buffer tempmorton;
-		vks::Buffer tempindex;
+		vks::Buffer morton_in;
+		vks::Buffer morton_out;
 		vks::Buffer histogram;
-		struct {
-			uint32_t mode;
-			uint32_t g_shift;
-		} pushConstants;
+		vks::Buffer maxpoint;
+		vks::Buffer minpoint;
 		VkQueue queue;								// Separate queue for compute commands (queue family may differ from the one used for graphics)
 		VkCommandPool commandPool;					// Use a separate command pool (queue family may differ from the one used for graphics)
 		VkCommandBuffer commandBuffer;				// Command buffer storing the dispatch commands and barriers
 		VkFence fence;								// Synchronization fence to avoid rewriting compute CB if still in use
-		VkDescriptorSetLayout descriptorSetLayout;	// Compute shader binding layout
-		VkDescriptorSet descriptorSet;				// Compute shader bindings
-		VkPipelineLayout pipelineLayout;			// Layout of the compute pipeline
-		VkPipeline pipeline;						// Compute raytracing pipeline
+		struct {
+			VkDescriptorSet raytracing;
+			VkDescriptorSet multiRadixSortHistograms;
+			VkDescriptorSet multiRadixSortHistograms2;
+			VkDescriptorSet multiRadixSort;
+			VkDescriptorSet multiRadixSort2;
+		} descriptorSets;
+		struct {
+			VkDescriptorSetLayout raytracing;
+			VkDescriptorSetLayout multiRadixSortHistograms;
+			VkDescriptorSetLayout multiRadixSortHistograms2;
+			VkDescriptorSetLayout multiRadixSort;
+			VkDescriptorSetLayout multiRadixSort2;
+		} descriptorSetLayouts;
+		struct {
+			VkPipelineLayout raytracing;
+			VkPipelineLayout multiRadixSortHistograms;
+			VkPipelineLayout multiRadixSortHistograms2;
+			VkPipelineLayout multiRadixSort;
+			VkPipelineLayout multiRadixSort2;
+		} pipelineLayouts;
+		std::array<VkPipeline, 5> pipelines;
+		struct {
+			uint32_t g_num_elements;
+			uint32_t shift; 
+			uint32_t num_workgroups;
+			uint32_t num_blocks_per_workgroup = 32;
+		} pushConstants;
 	} compute;
 	float radius = 1.0;
 	VulkanRaytracingSample::AccelerationStructure bottomLevelAS{};
@@ -79,11 +101,23 @@ public:
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 		ubo.destroy();
+		compute.morton_in.destroy();
+		compute.morton_out.destroy();
+		compute.histogram.destroy();
+		compute.maxpoint.destroy();
+		compute.minpoint.destroy();
+		compute.points.destroy();
+		compute.normals.destroy();
+		compute.queries.destroy();
+		compute.sortqueries.destroy();	
+		vkDestroyPipelineLayout(device, compute.pipelineLayouts.multiRadixSortHistograms, nullptr);
+		vkDestroyPipelineLayout(device, compute.pipelineLayouts.multiRadixSort, nullptr);
+		vkDestroyDescriptorSetLayout(device, compute.descriptorSetLayouts.multiRadixSortHistograms, nullptr);
+		vkDestroyDescriptorSetLayout(device, compute.descriptorSetLayouts.multiRadixSort, nullptr);
+		for (auto i = 0; i < 3; ++i)
+			vkDestroyPipeline(device, compute.pipelines[i], nullptr);
 		deleteAccelerationStructure(bottomLevelAS);
 		deleteAccelerationStructure(topLevelAS);
-		vkDestroyPipeline(device, compute.pipeline, nullptr);
-		vkDestroyPipelineLayout(device, compute.pipelineLayout, nullptr);
-		vkDestroyDescriptorSetLayout(device, compute.descriptorSetLayout, nullptr);
 		vkDestroyFence(device, compute.fence, nullptr);
 		vkDestroyCommandPool(device, compute.commandPool, nullptr);
 	}
@@ -92,19 +126,34 @@ public:
 	void prepareStorageBuffers()
 	{
 		vkglTF::memoryPropertyFlags = VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
-		const std::string& fileName = "../assets/lucy.asc";
+		const std::string& fileName = "../assets/happy_vrip.asc";
 		scene.numpoint = 0;
 		std::vector<glm::vec3>points;
 		std::vector<glm::vec3>normals;
+		std::vector<int>initindex;
 		std::vector<vkglTF::PointModel::Vertert>verterts;
 		std::vector<vkglTF::PointModel::Dimensions>AABBs;
 		FILE* fp = fopen(fileName.c_str(), "r");
 		glm::vec3 point;
 		glm::vec3 normal;
+		glm::vec3 localminpoint= glm::vec3(FLT_MAX);
+		glm::vec3 localmaxpoint= glm::vec3(-FLT_MAX);
 		char line[1024];
 		while (fgets(line, 1023, fp))
 		{
 			sscanf(line, "%f%f%f", &point.x, &point.y, &point.z);
+			if (point.x > localmaxpoint.x)
+				localmaxpoint.x = point.x;
+			if (point.y > localmaxpoint.y)
+				localmaxpoint.y = point.y;
+			if (point.z > localmaxpoint.z)
+				localmaxpoint.z = point.z;
+			if (point.x < localminpoint.x)
+				localminpoint.x = point.x;
+			if (point.y < localminpoint.y)
+				localminpoint.y = point.y;
+			if (point.z < localminpoint.z)
+				localminpoint.z = point.z;
 			vkglTF::PointModel::Vertert vertert;
 			vertert.pos = glm::vec3(point.x, point.y, point.z);
 			points.push_back(glm::vec3(point.x, point.y, point.z));
@@ -114,13 +163,31 @@ public:
 			dimensions.max = glm::vec3(point.x + radius, point.y + radius, point.z + radius);
 			dimensions.min = glm::vec3(point.x - radius, point.y - radius, point.z - radius);
 			AABBs.push_back(dimensions);
+			initindex.push_back(scene.numpoint);
 			scene.numpoint++;
 		}
 		fclose(fp);
 		scene.loadPointCloud(verterts, AABBs, vulkanDevice, queue);
-
-		VkDeviceSize storageBufferSize = points.size() * sizeof(glm::vec3);
+		VkDeviceSize storageBufferSize = scene.numpoint * sizeof(glm::vec3);
 		vks::Buffer stagingBuffer;
+		vulkanDevice->createBuffer(
+			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+			&stagingBuffer,
+			storageBufferSize,
+			points.data());
+		vulkanDevice->createBuffer(
+			// The SSBO will be used as a storage buffer for the compute pipeline and as a vertex buffer in the graphics pipeline
+			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+			&compute.points,
+			storageBufferSize);
+		VkCommandBuffer copyCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+		VkBufferCopy copyRegion = {};
+		copyRegion.size = storageBufferSize;
+		vkCmdCopyBuffer(copyCmd, stagingBuffer.buffer, compute.points.buffer, 1, &copyRegion);
+		vulkanDevice->flushCommandBuffer(copyCmd, queue, true);
+		stagingBuffer.destroy();
 
 		vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
@@ -128,23 +195,17 @@ public:
 			&stagingBuffer,
 			storageBufferSize,
 			points.data());
-
 		vulkanDevice->createBuffer(
 			// The SSBO will be used as a storage buffer for the compute pipeline and as a vertex buffer in the graphics pipeline
-			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-			&compute.points,
+			&compute.queries,
 			storageBufferSize);
-
-		VkCommandBuffer copyCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
-		VkBufferCopy copyRegion = {};
+		copyCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
 		copyRegion.size = storageBufferSize;
-		vkCmdCopyBuffer(copyCmd, stagingBuffer.buffer, compute.points.buffer, 1, &copyRegion);
+		vkCmdCopyBuffer(copyCmd, stagingBuffer.buffer, compute.queries.buffer, 1, &copyRegion);
 		vulkanDevice->flushCommandBuffer(copyCmd, queue, true);
-
 		stagingBuffer.destroy();
-
-		storageBufferSize = normals.size() * sizeof(glm::vec3);
 
 		vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
@@ -152,17 +213,60 @@ public:
 			&stagingBuffer,
 			storageBufferSize,
 			normals.data());
-
 		vulkanDevice->createBuffer(
 			// The SSBO will be used as a storage buffer for the compute pipeline and as a vertex buffer in the graphics pipeline
 			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 			&compute.normals,
 			storageBufferSize);
-
 		copyCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
 		copyRegion.size = storageBufferSize;
 		vkCmdCopyBuffer(copyCmd, stagingBuffer.buffer, compute.normals.buffer, 1, &copyRegion);
+		vulkanDevice->flushCommandBuffer(copyCmd, queue, true);
+		stagingBuffer.destroy();
+
+		vulkanDevice->createBuffer(
+			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+			&compute.sortqueries,
+			storageBufferSize);
+
+		std::vector<glm::vec3>minpoints;
+		std::vector<glm::vec3>maxpoints;
+		minpoints.push_back(localminpoint);
+		maxpoints.push_back(localmaxpoint);
+		storageBufferSize = 1 * sizeof(glm::vec3);
+		vulkanDevice->createBuffer(
+			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+			&stagingBuffer,
+			storageBufferSize,
+			minpoints.data());
+		vulkanDevice->createBuffer(
+			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+			&compute.minpoint,
+			1 * sizeof(glm::vec3));
+		copyCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+		copyRegion.size = storageBufferSize;
+		vkCmdCopyBuffer(copyCmd, stagingBuffer.buffer, compute.minpoint.buffer, 1, &copyRegion);
+		vulkanDevice->flushCommandBuffer(copyCmd, queue, true);
+		stagingBuffer.destroy();
+
+		vulkanDevice->createBuffer(
+			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+			&stagingBuffer,
+			storageBufferSize,
+			maxpoints.data());
+		vulkanDevice->createBuffer(
+			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+			&compute.maxpoint,
+			1 * sizeof(glm::vec3));
+		copyCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+		copyRegion.size = storageBufferSize;
+		vkCmdCopyBuffer(copyCmd, stagingBuffer.buffer, compute.maxpoint.buffer, 1, &copyRegion);
 		vulkanDevice->flushCommandBuffer(copyCmd, queue, true);
 		stagingBuffer.destroy();
 
@@ -170,28 +274,18 @@ public:
 		vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 
-			&compute.morton,  
+			&compute.morton_in,
 			storageBufferSize);
 		vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-			&compute.index,
-			storageBufferSize);
-		vulkanDevice->createBuffer(
-			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-			&compute.tempmorton, 
-			storageBufferSize);
-		vulkanDevice->createBuffer(
-			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 
-			&compute.tempindex, 
+			&compute.morton_out,
 			storageBufferSize);
 		vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 			&compute.histogram,
-			256*sizeof(uint32_t));
+			storageBufferSize);
 	}
 
 	// Prepare and initialize uniform buffer containing shader uniforms
@@ -478,71 +572,116 @@ public:
 		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
 	}
 
-	void MortonSort(uint32_t g_shift) {
-		VkMemoryBarrier memoryBarrier = {};
-		memoryBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
-		memoryBarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-		memoryBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-
-		compute.pushConstants.g_shift = g_shift;
-
-		compute.pushConstants.mode = 0; 
-
-		vkCmdPushConstants(compute.commandBuffer, compute.pipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(compute.pushConstants), &compute.pushConstants);
-
-		vkCmdDispatch(compute.commandBuffer, (scene.numpoint + 1024 - 1) / 1024, 1, 1);
-
-		vkCmdPipelineBarrier(compute.commandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &memoryBarrier, 0, nullptr, 0, nullptr);
-
-		compute.pushConstants.mode = 1; 
-
-		vkCmdPushConstants(compute.commandBuffer, compute.pipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(compute.pushConstants), &compute.pushConstants);
-
-		vkCmdDispatch(compute.commandBuffer, (scene.numpoint + 1024 - 1) / 1024, 1, 1);
-
-		vkCmdPipelineBarrier(compute.commandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &memoryBarrier, 0, nullptr, 0, nullptr);
-
-		compute.pushConstants.mode = 2;
-
-		vkCmdPushConstants(compute.commandBuffer, compute.pipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(compute.pushConstants), &compute.pushConstants);
-
-		vkCmdDispatch(compute.commandBuffer, (scene.numpoint + 1024 - 1) / 1024, 1, 1);
-
-		vkCmdPipelineBarrier(compute.commandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &memoryBarrier, 0, nullptr, 0, nullptr);
-
-		compute.pushConstants.mode = 3;
-
-		vkCmdPushConstants(compute.commandBuffer, compute.pipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(compute.pushConstants), &compute.pushConstants);
-
-		vkCmdDispatch(compute.commandBuffer, (scene.numpoint + 1024 - 1) / 1024, 1, 1);
-
-		vkCmdPipelineBarrier(compute.commandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &memoryBarrier, 0, nullptr, 0, nullptr);
-	}
+	
 	void buildComputeCommandBuffer()
 	{
+		auto computeCommandBuffer = compute.commandBuffer;
+		auto addMemoryBarrier = [&computeCommandBuffer](VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask, VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dstStageMask)
+			{
+				VkMemoryBarrier memoryBarrier = vks::initializers::memoryBarrier();
+				memoryBarrier.srcAccessMask = srcAccessMask;
+				memoryBarrier.dstAccessMask = dstAccessMask;
+				vkCmdPipelineBarrier(computeCommandBuffer, srcStageMask, dstStageMask, 0, 1, &memoryBarrier, 0, nullptr, 0, nullptr);
+			};
+
 		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
-
 		VK_CHECK_RESULT(vkBeginCommandBuffer(compute.commandBuffer, &cmdBufInfo));
-
-		vkCmdBindPipeline(compute.commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute.pipeline);
-
-		vkCmdBindDescriptorSets(compute.commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute.pipelineLayout, 0, 1, &compute.descriptorSet, 0, 0);
 
 		vkCmdResetQueryPool(compute.commandBuffer, queryPool, 0, 2);
 
+		compute.pushConstants.shift = 0; compute.pushConstants.g_num_elements = scene.numpoint; compute.pushConstants.num_workgroups = (scene.numpoint + 256 - 1) / 256;
+
+		vkCmdPushConstants(compute.commandBuffer, compute.pipelineLayouts.multiRadixSortHistograms, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(compute.pushConstants), &compute.pushConstants);
+
+		vkCmdBindPipeline(compute.commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute.pipelines[1]);
+
+		vkCmdBindDescriptorSets(compute.commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute.pipelineLayouts.multiRadixSortHistograms, 0, 1, &compute.descriptorSets.multiRadixSortHistograms, 0, 0);
+
+		vkCmdDispatch(compute.commandBuffer, (scene.numpoint + 256 - 1) / 256, 1, 1);
+
+		addMemoryBarrier(VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+
+		vkCmdPushConstants(computeCommandBuffer, compute.pipelineLayouts.multiRadixSort, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(compute.pushConstants), &compute.pushConstants);
+
+		vkCmdBindPipeline(computeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute.pipelines[2]);
+
+		vkCmdBindDescriptorSets(computeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute.pipelineLayouts.multiRadixSort, 0, 1, &compute.descriptorSets.multiRadixSort, 0, 0);
+
+		vkCmdDispatch(compute.commandBuffer, (scene.numpoint + 256 - 1) / 256, 1, 1);
+
+		addMemoryBarrier(VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+
+		compute.pushConstants.shift = 8;
+		
+		vkCmdPushConstants(computeCommandBuffer, compute.pipelineLayouts.multiRadixSortHistograms2, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(compute.pushConstants), &compute.pushConstants);
+
+		vkCmdBindPipeline(computeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute.pipelines[3]);
+
+		vkCmdBindDescriptorSets(computeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute.pipelineLayouts.multiRadixSortHistograms2, 0, 1, &compute.descriptorSets.multiRadixSortHistograms2, 0, 0);
+		
+		vkCmdDispatch(compute.commandBuffer, (scene.numpoint + 256 - 1) / 256, 1, 1);
+
+		addMemoryBarrier(VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+
+		vkCmdPushConstants(computeCommandBuffer, compute.pipelineLayouts.multiRadixSort2, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(compute.pushConstants), &compute.pushConstants);
+
+		vkCmdBindPipeline(computeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute.pipelines[4]);
+
+		vkCmdBindDescriptorSets(computeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute.pipelineLayouts.multiRadixSort2, 0, 1, &compute.descriptorSets.multiRadixSort2, 0, 0);
+		
+		vkCmdDispatch(compute.commandBuffer, (scene.numpoint + 256 - 1) / 256, 1, 1);
+
+		addMemoryBarrier(VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+
+		compute.pushConstants.shift = 16;
+		
+		vkCmdPushConstants(computeCommandBuffer, compute.pipelineLayouts.multiRadixSortHistograms, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(compute.pushConstants), &compute.pushConstants);
+		
+		vkCmdBindPipeline(computeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute.pipelines[1]);
+
+		vkCmdBindDescriptorSets(computeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute.pipelineLayouts.multiRadixSortHistograms, 0, 1, &compute.descriptorSets.multiRadixSortHistograms, 0, 0);
+		
+		vkCmdDispatch(compute.commandBuffer, (scene.numpoint + 256 - 1) / 256, 1, 1);
+
+		addMemoryBarrier(VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+
+		vkCmdPushConstants(computeCommandBuffer, compute.pipelineLayouts.multiRadixSort, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(compute.pushConstants), &compute.pushConstants);
+		
+		vkCmdBindPipeline(computeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute.pipelines[2]);
+
+		vkCmdBindDescriptorSets(computeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute.pipelineLayouts.multiRadixSort, 0, 1, &compute.descriptorSets.multiRadixSort, 0, 0);
+		
+		vkCmdDispatch(compute.commandBuffer, (scene.numpoint + 256 - 1) / 256, 1, 1);
+
+		addMemoryBarrier(VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+
+		compute.pushConstants.shift = 24;
+		
+		vkCmdPushConstants(computeCommandBuffer, compute.pipelineLayouts.multiRadixSortHistograms2, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(compute.pushConstants), &compute.pushConstants);
+		
+		vkCmdBindPipeline(computeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute.pipelines[3]);
+
+		vkCmdBindDescriptorSets(computeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute.pipelineLayouts.multiRadixSortHistograms2, 0, 1, &compute.descriptorSets.multiRadixSortHistograms2, 0, 0);
+		
+		vkCmdDispatch(compute.commandBuffer, (scene.numpoint + 256 - 1) / 256, 1, 1);
+
+		addMemoryBarrier(VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+
+		vkCmdPushConstants(computeCommandBuffer, compute.pipelineLayouts.multiRadixSort2, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(compute.pushConstants), &compute.pushConstants);
+		
+		vkCmdBindPipeline(computeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute.pipelines[4]);
+		
+		vkCmdBindDescriptorSets(computeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute.pipelineLayouts.multiRadixSort2, 0, 1, &compute.descriptorSets.multiRadixSort2, 0, 0);
+		
+		vkCmdDispatch(compute.commandBuffer, (scene.numpoint + 256 - 1) / 256, 1, 1);
+
+		addMemoryBarrier(VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+
 		vkCmdWriteTimestamp(compute.commandBuffer, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, queryPool, 0);
 
-		MortonSort(8);
+		vkCmdBindPipeline(computeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute.pipelines[0]);
 
-		MortonSort(16);
-
-		MortonSort(24);
-
-		MortonSort(32);
-		
-		compute.pushConstants.mode = 4;
-
-		vkCmdPushConstants(compute.commandBuffer, compute.pipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(compute.pushConstants), &compute.pushConstants);
+		vkCmdBindDescriptorSets(computeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute.pipelineLayouts.raytracing, 0, 1, &compute.descriptorSets.raytracing, 0, 0);
 
 		vkCmdDispatch(compute.commandBuffer, (scene.numpoint + 1024 - 1) / 1024, 1, 1);
 
@@ -560,147 +699,224 @@ public:
 		queueCreateInfo.queueFamilyIndex = vulkanDevice->queueFamilyIndices.compute;
 		queueCreateInfo.queueCount = 1;
 		vkGetDeviceQueue(device, vulkanDevice->queueFamilyIndices.compute, 0, &compute.queue);
-		// 定义描述符集合布局compute.descriptorSetLayout
-		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
-			// Binding 0: Shader storage buffer for the points
-			vks::initializers::descriptorSetLayoutBinding(
-				VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-				VK_SHADER_STAGE_COMPUTE_BIT,
-				0),
-			// Binding 1: top structure
-			vks::initializers::descriptorSetLayoutBinding(
-				VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR,
-				VK_SHADER_STAGE_COMPUTE_BIT,
-				1),
-			// Binding 2: Shader storage buffer for the normals
-			vks::initializers::descriptorSetLayoutBinding(
-				VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-				VK_SHADER_STAGE_COMPUTE_BIT,
-				2),
-			// Binding 3: Shader storage buffer for the morton
-			vks::initializers::descriptorSetLayoutBinding(
-				VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-				VK_SHADER_STAGE_COMPUTE_BIT,
-				3),
-			// Binding 4: Shader storage buffer for the index
-			vks::initializers::descriptorSetLayoutBinding(
-				VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-				VK_SHADER_STAGE_COMPUTE_BIT,
-				4),
-			// Binding 5: Shader storage buffer for the tempmorton
-			vks::initializers::descriptorSetLayoutBinding(
-				VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-				VK_SHADER_STAGE_COMPUTE_BIT,
-				5),
-			// Binding 6: Shader storage buffer for the tempindex
-			vks::initializers::descriptorSetLayoutBinding(
-				VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-				VK_SHADER_STAGE_COMPUTE_BIT,
-				6),
-			vks::initializers::descriptorSetLayoutBinding(
-				VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-				VK_SHADER_STAGE_COMPUTE_BIT,
-				7)
-		};
-		
-		VkDescriptorSetLayoutCreateInfo descriptorLayout =
-			vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
 
-		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &compute.descriptorSetLayout));
-		//定义管线布局compute.pipelineLayout
-		VkPipelineLayoutCreateInfo pPipelineLayoutCreateInfo =
-			vks::initializers::pipelineLayoutCreateInfo(
-				&compute.descriptorSetLayout,
-				1);
-		//在管线处为着色器绑定compute.pushConstants
-		VkPushConstantRange pushConstantRanges = { VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(compute.pushConstants) };
-		pPipelineLayoutCreateInfo.pushConstantRangeCount = 1;
-		pPipelineLayoutCreateInfo.pPushConstantRanges = &pushConstantRanges;
-		pPipelineLayoutCreateInfo.setLayoutCount = 1;
-		pPipelineLayoutCreateInfo.pSetLayouts = &compute.descriptorSetLayout;
-		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &compute.pipelineLayout));
 		//创建描述池descriptorPool
 		std::vector<VkDescriptorPoolSize> poolSizes = {
-				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 7),
+				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 24),
 				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, 1)
 		};
-		VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, 1);
+		VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, 5);
 		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool));
-		//分配和更新描述池
-		VkDescriptorSetAllocateInfo allocInfo =
-			vks::initializers::descriptorSetAllocateInfo(
-				descriptorPool,
-				&compute.descriptorSetLayout,
-				1);
 
-		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &compute.descriptorSet));
-
+		// 定义raytracing描述符集合布局compute.descriptorSetLayout
+		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
+			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,VK_SHADER_STAGE_COMPUTE_BIT,0),
+			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR,VK_SHADER_STAGE_COMPUTE_BIT,1),
+			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,VK_SHADER_STAGE_COMPUTE_BIT,2),
+			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,VK_SHADER_STAGE_COMPUTE_BIT,3),
+		};
+		VkDescriptorSetLayoutCreateInfo descriptorLayout =vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
+		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &compute.descriptorSetLayouts.raytracing));
+		//定义管线布局compute.pipelineLayout
+		VkPipelineLayoutCreateInfo pPipelineLayoutCreateInfo =vks::initializers::pipelineLayoutCreateInfo(&compute.descriptorSetLayouts.raytracing,1);
+		pPipelineLayoutCreateInfo.setLayoutCount = 1;
+		pPipelineLayoutCreateInfo.pSetLayouts = &compute.descriptorSetLayouts.raytracing;
+		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &compute.pipelineLayouts.raytracing));
+		//分配描述子集
+		VkDescriptorSetAllocateInfo allocInfo =vks::initializers::descriptorSetAllocateInfo(descriptorPool,&compute.descriptorSetLayouts.raytracing,1);
+		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &compute.descriptorSets.raytracing));
 		VkWriteDescriptorSetAccelerationStructureKHR descriptorAccelerationStructureInfo = vks::initializers::writeDescriptorSetAccelerationStructureKHR();
 		descriptorAccelerationStructureInfo.accelerationStructureCount = 1;
 		descriptorAccelerationStructureInfo.pAccelerationStructures = &topLevelAS.handle;
-
 		VkWriteDescriptorSet accelerationStructureWrite{};
 		accelerationStructureWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		// The specialized acceleration structure descriptor has to be chained
 		accelerationStructureWrite.pNext = &descriptorAccelerationStructureInfo;
-		accelerationStructureWrite.dstSet = compute.descriptorSet;
+		accelerationStructureWrite.dstSet = compute.descriptorSets.raytracing;
 		accelerationStructureWrite.dstBinding = 1,
-			accelerationStructureWrite.descriptorCount = 1;
+		accelerationStructureWrite.descriptorCount = 1;
 		accelerationStructureWrite.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
-
 		std::vector<VkWriteDescriptorSet> computeWriteDescriptorSets =
 		{
 			// Binding 0: points storage buffer 
-			vks::initializers::writeDescriptorSet(
-				compute.descriptorSet,
-				VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-				0,
-				&compute.points.descriptor),
+			vks::initializers::writeDescriptorSet(compute.descriptorSets.raytracing,VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,0,&compute.queries.descriptor),
 			accelerationStructureWrite,
 			// Binding 2: normals storage buffer 
-			vks::initializers::writeDescriptorSet(
-				compute.descriptorSet,
-				VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-				2,
-				&compute.normals.descriptor),
-			vks::initializers::writeDescriptorSet(
-				compute.descriptorSet,
-				VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-				3,
-				&compute.morton.descriptor),
-			vks::initializers::writeDescriptorSet(
-				compute.descriptorSet,
-				VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-				4,
-				&compute.index.descriptor),
-			vks::initializers::writeDescriptorSet(
-				compute.descriptorSet,
-				VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-				5,
-				&compute.tempmorton.descriptor),
-			vks::initializers::writeDescriptorSet(
-				compute.descriptorSet,
-				VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-				6,
-				&compute.tempindex.descriptor),
-			vks::initializers::writeDescriptorSet(
-				compute.descriptorSet,
-				VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-				7,
-				&compute.histogram.descriptor),
+			vks::initializers::writeDescriptorSet(compute.descriptorSets.raytracing,VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,2,&compute.normals.descriptor),
+			vks::initializers::writeDescriptorSet(compute.descriptorSets.raytracing,VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,3,&compute.points.descriptor),
 		};
-
 		vkUpdateDescriptorSets(device, static_cast<uint32_t>(computeWriteDescriptorSets.size()), computeWriteDescriptorSets.data(), 0, nullptr);
+		
+		//pre multiRadixSortHistograms
+		setLayoutBindings = {
+			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 0),
+			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 1),
+			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 2),
+			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 3),
+			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 4),
+		};
+		descriptorLayout =
+			vks::initializers::descriptorSetLayoutCreateInfo(
+				setLayoutBindings.data(),
+				setLayoutBindings.size());
+		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &compute.descriptorSetLayouts.multiRadixSortHistograms));
+		VkPushConstantRange pushConstantRanges = { VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(compute.pushConstants) };
+		pPipelineLayoutCreateInfo = vks::initializers::pipelineLayoutCreateInfo(&compute.descriptorSetLayouts.multiRadixSortHistograms, 1);
+		pPipelineLayoutCreateInfo.pushConstantRangeCount = 1;
+		pPipelineLayoutCreateInfo.pPushConstantRanges = &pushConstantRanges;
+		pPipelineLayoutCreateInfo.setLayoutCount = 1;
+		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &compute.pipelineLayouts.multiRadixSortHistograms));
+		allocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &compute.descriptorSetLayouts.multiRadixSortHistograms, 1);
+		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &compute.descriptorSets.multiRadixSortHistograms));
+		computeWriteDescriptorSets =
+		{
+			vks::initializers::writeDescriptorSet(compute.descriptorSets.multiRadixSortHistograms, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 0, &compute.morton_in.descriptor),
+			vks::initializers::writeDescriptorSet(compute.descriptorSets.multiRadixSortHistograms, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, &compute.histogram.descriptor),
+			vks::initializers::writeDescriptorSet(compute.descriptorSets.multiRadixSortHistograms, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 2, &compute.queries.descriptor),
+			vks::initializers::writeDescriptorSet(compute.descriptorSets.multiRadixSortHistograms, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 3, &compute.maxpoint.descriptor),
+			vks::initializers::writeDescriptorSet(compute.descriptorSets.multiRadixSortHistograms, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 4, &compute.minpoint.descriptor),
+		};
+		vkUpdateDescriptorSets(device, computeWriteDescriptorSets.size(), computeWriteDescriptorSets.data(), 0, NULL);
+		
+		//pre multiRadixSortHistograms2
+		setLayoutBindings = {
+			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 0),
+			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 1),
+			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 2),
+			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 3),
+			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 4),
+		};
+		descriptorLayout =
+			vks::initializers::descriptorSetLayoutCreateInfo(
+				setLayoutBindings.data(),
+				setLayoutBindings.size());
+		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &compute.descriptorSetLayouts.multiRadixSortHistograms2));
+		pushConstantRanges = { VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(compute.pushConstants) };
+		pPipelineLayoutCreateInfo = vks::initializers::pipelineLayoutCreateInfo(&compute.descriptorSetLayouts.multiRadixSortHistograms2, 1);
+		pPipelineLayoutCreateInfo.pushConstantRangeCount = 1;
+		pPipelineLayoutCreateInfo.pPushConstantRanges = &pushConstantRanges;
+		pPipelineLayoutCreateInfo.setLayoutCount = 1;
+		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &compute.pipelineLayouts.multiRadixSortHistograms2));
+		allocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &compute.descriptorSetLayouts.multiRadixSortHistograms2, 1);
+		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &compute.descriptorSets.multiRadixSortHistograms2));
+		computeWriteDescriptorSets =
+		{
+			vks::initializers::writeDescriptorSet(compute.descriptorSets.multiRadixSortHistograms2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 0, &compute.morton_out.descriptor),
+			vks::initializers::writeDescriptorSet(compute.descriptorSets.multiRadixSortHistograms2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, &compute.histogram.descriptor),
+			vks::initializers::writeDescriptorSet(compute.descriptorSets.multiRadixSortHistograms2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 2, &compute.queries.descriptor),
+			vks::initializers::writeDescriptorSet(compute.descriptorSets.multiRadixSortHistograms2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 3, &compute.maxpoint.descriptor),
+			vks::initializers::writeDescriptorSet(compute.descriptorSets.multiRadixSortHistograms2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 4, &compute.minpoint.descriptor),
+		};
+		vkUpdateDescriptorSets(device, computeWriteDescriptorSets.size(), computeWriteDescriptorSets.data(), 0, NULL);
 
-		// Create compute shader pipelines
+		//pre multiRadixSort
+		setLayoutBindings = {
+			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 0),
+			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 1),
+			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 2),
+			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 3),
+			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 4),
+		};
+		descriptorLayout =
+			vks::initializers::descriptorSetLayoutCreateInfo(
+				setLayoutBindings.data(),
+				setLayoutBindings.size());
+		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &compute.descriptorSetLayouts.multiRadixSort));
+		pPipelineLayoutCreateInfo = vks::initializers::pipelineLayoutCreateInfo(&compute.descriptorSetLayouts.multiRadixSort, 1);
+		pPipelineLayoutCreateInfo.pushConstantRangeCount = 1;
+		pPipelineLayoutCreateInfo.pPushConstantRanges = &pushConstantRanges;
+		pPipelineLayoutCreateInfo.setLayoutCount = 1;
+		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &compute.pipelineLayouts.multiRadixSort));
+		allocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &compute.descriptorSetLayouts.multiRadixSort, 1);
+		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &compute.descriptorSets.multiRadixSort));
+		computeWriteDescriptorSets =
+		{
+			vks::initializers::writeDescriptorSet(compute.descriptorSets.multiRadixSort, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 0, &compute.morton_in.descriptor),
+			vks::initializers::writeDescriptorSet(compute.descriptorSets.multiRadixSort, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, &compute.morton_out.descriptor),
+			vks::initializers::writeDescriptorSet(compute.descriptorSets.multiRadixSort, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 2, &compute.histogram.descriptor),
+			vks::initializers::writeDescriptorSet(compute.descriptorSets.multiRadixSort, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 3, &compute.queries.descriptor),
+			vks::initializers::writeDescriptorSet(compute.descriptorSets.multiRadixSort, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 4, &compute.sortqueries.descriptor),
+		};
+		vkUpdateDescriptorSets(device, computeWriteDescriptorSets.size(), computeWriteDescriptorSets.data(), 0, NULL);
+		
+		//pre multiRadixSort2
+		setLayoutBindings = {
+			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 0),
+			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 1),
+			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 2),
+			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 3),
+			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 4),
+		};
+		descriptorLayout =
+			vks::initializers::descriptorSetLayoutCreateInfo(
+				setLayoutBindings.data(),
+				setLayoutBindings.size());
+		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &compute.descriptorSetLayouts.multiRadixSort2));
+		pPipelineLayoutCreateInfo = vks::initializers::pipelineLayoutCreateInfo(&compute.descriptorSetLayouts.multiRadixSort2, 1);
+		pPipelineLayoutCreateInfo.pushConstantRangeCount = 1;
+		pPipelineLayoutCreateInfo.pPushConstantRanges = &pushConstantRanges;
+		pPipelineLayoutCreateInfo.setLayoutCount = 1;
+		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &compute.pipelineLayouts.multiRadixSort2));
+		allocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &compute.descriptorSetLayouts.multiRadixSort2, 1);
+		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &compute.descriptorSets.multiRadixSort2));
+		computeWriteDescriptorSets =
+		{
+			vks::initializers::writeDescriptorSet(compute.descriptorSets.multiRadixSort2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 0, &compute.morton_out.descriptor),
+			vks::initializers::writeDescriptorSet(compute.descriptorSets.multiRadixSort2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, &compute.morton_in.descriptor),
+			vks::initializers::writeDescriptorSet(compute.descriptorSets.multiRadixSort2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 2, &compute.histogram.descriptor),
+			vks::initializers::writeDescriptorSet(compute.descriptorSets.multiRadixSort2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 3, &compute.sortqueries.descriptor),
+			vks::initializers::writeDescriptorSet(compute.descriptorSets.multiRadixSort2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 4, &compute.queries.descriptor),
+		};
+		vkUpdateDescriptorSets(device, computeWriteDescriptorSets.size(), computeWriteDescriptorSets.data(), 0, NULL);
+		// Create compute shader pipelines raytracing
 		VkComputePipelineCreateInfo computePipelineCreateInfo =
 			vks::initializers::computePipelineCreateInfo(
-				compute.pipelineLayout,
+				compute.pipelineLayouts.raytracing,
+				0);
+		auto createComputePipeline = [&](int index, const std::string& name, int subgroupSize = 0)
+			{
+				computePipelineCreateInfo.stage = loadShader("./../shaders/glsl/rayquery/" + name + ".comp.spv", VK_SHADER_STAGE_COMPUTE_BIT);
+				if (subgroupSize > 0)
+				{
+					VkPipelineShaderStageRequiredSubgroupSizeCreateInfo subgroupSizeCreateInfo = {};
+					subgroupSizeCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_REQUIRED_SUBGROUP_SIZE_CREATE_INFO;
+					subgroupSizeCreateInfo.requiredSubgroupSize = subgroupSize;
+					computePipelineCreateInfo.stage.pNext = &subgroupSizeCreateInfo;
+					computePipelineCreateInfo.stage.flags |= VK_PIPELINE_SHADER_STAGE_CREATE_REQUIRE_FULL_SUBGROUPS_BIT_EXT;
+				}
+				VK_CHECK_RESULT(vkCreateComputePipelines(device, pipelineCache, 1, &computePipelineCreateInfo, nullptr, &compute.pipelines[index]));
+			};
+		
+		createComputePipeline(0, "raytracing");
+
+		computePipelineCreateInfo =
+			vks::initializers::computePipelineCreateInfo(
+				compute.pipelineLayouts.multiRadixSortHistograms,
+				0);
+		createComputePipeline(1, "multi_radixsort_histograms");
+
+
+
+		computePipelineCreateInfo =
+			vks::initializers::computePipelineCreateInfo(
+				compute.pipelineLayouts.multiRadixSort,
 				0);
 
-		computePipelineCreateInfo.stage = loadShader(getShadersPath() + "rayquery/raytracing.comp.spv", VK_SHADER_STAGE_COMPUTE_BIT);
-		VK_CHECK_RESULT(vkCreateComputePipelines(device, pipelineCache, 1, &computePipelineCreateInfo, nullptr, &compute.pipeline));
+		createComputePipeline(2, "multi_radixsort", 32);
 
+		computePipelineCreateInfo =
+			vks::initializers::computePipelineCreateInfo(
+				compute.pipelineLayouts.multiRadixSortHistograms2,
+				0);
+		createComputePipeline(3, "multi_radixsort_histograms");
+
+		computePipelineCreateInfo =
+			vks::initializers::computePipelineCreateInfo(
+				compute.pipelineLayouts.multiRadixSort2,
+				0);
+
+		createComputePipeline(4, "multi_radixsort", 32);
+		// 创建命令池->在命令池中分配命令缓冲区->为命令缓冲区赋值->创建栅栏->提交命令缓冲区队列开始计算任务->使用栅栏等待计算结束
 		// Separate command pool as queue family for compute may be different than graphics
 		VkCommandPoolCreateInfo cmdPoolInfo = {};
 		cmdPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -774,24 +990,39 @@ public:
 		// Enable features required for ray tracing using feature chaining via pNext		
 		enabledBufferDeviceAddresFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES;
 		enabledBufferDeviceAddresFeatures.bufferDeviceAddress = VK_TRUE;
+		enabledBufferDeviceAddresFeatures.pNext = nullptr;
 
-		enabledRayTracingPipelineFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR;
-		enabledRayTracingPipelineFeatures.rayTracingPipeline = VK_TRUE;
-		enabledRayTracingPipelineFeatures.pNext = &enabledBufferDeviceAddresFeatures;
+		//enabledRayTracingPipelineFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR;
+		//enabledRayTracingPipelineFeatures.rayTracingPipeline = VK_TRUE;
+		//enabledRayTracingPipelineFeatures.pNext = &enabledBufferDeviceAddresFeatures;
+
+		enabledScalarBlockLayoutFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SCALAR_BLOCK_LAYOUT_FEATURES;
+		enabledScalarBlockLayoutFeatures.scalarBlockLayout = VK_TRUE;
+		enabledScalarBlockLayoutFeatures.pNext = &enabledBufferDeviceAddresFeatures;
 
 		enabledAccelerationStructureFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR;
 		enabledAccelerationStructureFeatures.accelerationStructure = VK_TRUE;
-		enabledAccelerationStructureFeatures.pNext = &enabledRayTracingPipelineFeatures;
+		enabledAccelerationStructureFeatures.pNext = &enabledScalarBlockLayoutFeatures;
 
 		enabledRayQueryFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_QUERY_FEATURES_KHR;
 		enabledRayQueryFeatures.rayQuery = VK_TRUE;
 		enabledRayQueryFeatures.pNext = &enabledAccelerationStructureFeatures;
+
 
 		deviceCreatepNextChain = &enabledRayQueryFeatures;
 
 		VkPhysicalDeviceProperties properties;
 		vkGetPhysicalDeviceProperties(physicalDevice, &properties);
 		timeStampPeriod = properties.limits.timestampPeriod / 1e6f;
+
+		VkPhysicalDeviceSubgroupProperties subgroupProperties{};
+		subgroupProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SUBGROUP_PROPERTIES;
+
+		VkPhysicalDeviceProperties2 physicalDeviceProperties{};
+		physicalDeviceProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+		physicalDeviceProperties.pNext = &subgroupProperties;
+
+		vkGetPhysicalDeviceProperties2(physicalDevice, &physicalDeviceProperties);
 	}
 
 	void draw()
@@ -848,7 +1079,7 @@ public:
 	}
 
 	void prepare()
-	{	// 定义描述集合布局->创建管线布局->创建描述池->分配和更新描述池
+	{	// 定义描述集合布局->创建管线布局->创建描述池->分配和更新描述符集
 		VulkanRaytracingSample::prepare();
 		setupQueryPool();
 		prepareUniformBuffers();
@@ -884,7 +1115,7 @@ public:
 			updateUniformBuffers();
 		}
 		frequency++;
-		if (frequency == 20)
+		if (frequency == 1)
 			getresult();
 	}
 
@@ -903,7 +1134,7 @@ public:
 		VkCommandBuffer copyCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
 		VkBufferCopy copyRegion = {};
 		copyRegion.size = bufferSize;
-		vkCmdCopyBuffer(copyCmd, compute.normals.buffer, readBuffer.buffer, 1, &copyRegion);
+		vkCmdCopyBuffer(copyCmd, compute.queries.buffer, readBuffer.buffer, 1, &copyRegion);
 		vulkanDevice->flushCommandBuffer(copyCmd, queue, true);
 
 		glm::vec3* cpuArray = new glm::vec3[scene.numpoint];
@@ -913,51 +1144,52 @@ public:
 		vkUnmapMemory(device, readBuffer.memory);
 		readBuffer.destroy();
 
+		vulkanDevice->createBuffer(
+			VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+			&readBuffer,
+			bufferSize);
+		
+		copyCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+		copyRegion = {};
+		copyRegion.size = bufferSize;
+		vkCmdCopyBuffer(copyCmd, compute.normals.buffer, readBuffer.buffer, 1, &copyRegion);
+		vulkanDevice->flushCommandBuffer(copyCmd, queue, true);
+
+		glm::vec3* cpuindex = new glm::vec3[scene.numpoint];
+		VK_CHECK_RESULT(vkMapMemory(device, readBuffer.memory, 0, bufferSize, 0, &mapped));
+		memcpy(cpuindex, mapped, bufferSize);
+		vkUnmapMemory(device, readBuffer.memory);
+		readBuffer.destroy();
+
+		bufferSize = scene.numpoint * sizeof(glm::uint);
+		vulkanDevice->createBuffer(
+			VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+			&readBuffer,
+			bufferSize);
+		copyCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+		copyRegion = {};
+		copyRegion.size = bufferSize;
+		vkCmdCopyBuffer(copyCmd, compute.morton_in.buffer, readBuffer.buffer, 1, &copyRegion);
+		vulkanDevice->flushCommandBuffer(copyCmd, queue, true);
+
+		glm::uint* morton = new glm::uint[scene.numpoint];
+		VK_CHECK_RESULT(vkMapMemory(device, readBuffer.memory, 0, bufferSize, 0, &mapped));
+		memcpy(morton, mapped, bufferSize);
+		vkUnmapMemory(device, readBuffer.memory);
+		readBuffer.destroy();
+
 		FILE* fp = fopen(fileName.c_str(), "w");
 		if (fp)
 		{
 
 			for (auto i = 0; i < scene.numpoint; ++i)
 			{
-				fprintf(fp, "%f %f %f\n", cpuArray[i].x, cpuArray[i].y, cpuArray[i].z);
+				fprintf(fp, "%f %f %f %f %f %f %d\n", cpuArray[i].x, cpuArray[i].y, cpuArray[i].z, cpuindex[i].x, cpuindex[i].y, cpuindex[i].z, morton[i]);
 			}
 			fclose(fp);
 		}
-		delete(cpuArray);
-
-		const std::string& IndexfileName = "../assets/index.asc";
-		bufferSize = scene.numpoint * sizeof(uint32_t);
-		vulkanDevice->createBuffer(
-			VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			&readBuffer,
-			bufferSize);
-
-		copyCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
-		copyRegion = {};
-		copyRegion.size = bufferSize;
-		vkCmdCopyBuffer(copyCmd, compute.index.buffer, readBuffer.buffer, 1, &copyRegion);
-		vulkanDevice->flushCommandBuffer(copyCmd, queue, true);
-
-		glm::uint32_t* cpuindex = new glm::uint32_t[scene.numpoint];
-		VK_CHECK_RESULT(vkMapMemory(device, readBuffer.memory, 0, bufferSize, 0, &mapped));
-		memcpy(cpuindex, mapped, bufferSize);
-		vkUnmapMemory(device, readBuffer.memory);
-		readBuffer.destroy();
-		
-		fp = fopen(IndexfileName.c_str(), "w");
-		if (fp)
-		{
-			int sum = 0;
-			for (auto i = 0; i < scene.numpoint; ++i)
-			{
-				fprintf(fp, "%d\n", cpuindex[i]);
-				sum += cpuindex[i];
-			}
-			fprintf(fp, "%d\n", sum);
-			fclose(fp);
-		}
-		delete(cpuindex);
 	}
 };
 
