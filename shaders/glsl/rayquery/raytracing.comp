@@ -28,8 +28,8 @@ layout(binding =3, scalar) buffer PointBuffer {
 };
 
 const int order = 2;
-const float radius=1.0;
-const int maxresult = 150;
+const float radius=5.0;
+const int maxresult = 400;
 const int nr_coeff = (order + 1) * (order + 2) / 2;
 const int Matirxn = nr_coeff * (nr_coeff + 1) / 2;
 float P_weight_Pt[nr_coeff * nr_coeff];
@@ -515,7 +515,7 @@ void main(){
 
 		mat3 tmp,vec_tmp,evecs;
 		vec3 evals;
-		//normals[idx]=compute(matrix,tmp, vec_tmp, evecs, evals);
+		normals[idx]=compute(matrix,tmp, vec_tmp, evecs, evals);
 		vec3 normal=compute(matrix,tmp, vec_tmp, evecs, evals);
 		if (length(normal) > 0.5f)
 			Query.query = Query.query + normal * dot(normal, center - queryRay.origin);

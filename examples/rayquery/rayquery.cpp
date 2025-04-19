@@ -4,7 +4,7 @@
 #include "Clock.h"
 #define ENABLE_VALIDATION false
 
-constexpr int numTimestamps = 10;
+constexpr int numTimestamps = 20;
 
 class VulkanExample : public VulkanRaytracingSample
 {
@@ -73,7 +73,7 @@ public:
 			uint32_t num_blocks_per_workgroup = 32;
 		} pushConstants;
 	} compute;
-	float radius = 1.0;
+	float radius = 5.0;
 	VulkanRaytracingSample::AccelerationStructure bottomLevelAS{};
 	VulkanRaytracingSample::AccelerationStructure topLevelAS{};
 
@@ -126,7 +126,7 @@ public:
 	void prepareStorageBuffers()
 	{
 		vkglTF::memoryPropertyFlags = VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
-		const std::string& fileName = "../assets/happy_vrip.asc";
+		const std::string& fileName = "../assets/lucy.asc";
 		scene.numpoint = 0;
 		std::vector<glm::vec3>points;
 		std::vector<glm::vec3>normals;
@@ -586,107 +586,81 @@ public:
 
 		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
 		VK_CHECK_RESULT(vkBeginCommandBuffer(compute.commandBuffer, &cmdBufInfo));
-
 		vkCmdResetQueryPool(compute.commandBuffer, queryPool, 0, 2);
-
+		
 		compute.pushConstants.shift = 0; compute.pushConstants.g_num_elements = scene.numpoint; compute.pushConstants.num_workgroups = (scene.numpoint + 256 - 1) / 256;
-
 		vkCmdPushConstants(compute.commandBuffer, compute.pipelineLayouts.multiRadixSortHistograms, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(compute.pushConstants), &compute.pushConstants);
-
 		vkCmdBindPipeline(compute.commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute.pipelines[1]);
-
 		vkCmdBindDescriptorSets(compute.commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute.pipelineLayouts.multiRadixSortHistograms, 0, 1, &compute.descriptorSets.multiRadixSortHistograms, 0, 0);
-
+		vkCmdWriteTimestamp(compute.commandBuffer, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, queryPool, 0);
 		vkCmdDispatch(compute.commandBuffer, (scene.numpoint + 256 - 1) / 256, 1, 1);
-
+		vkCmdWriteTimestamp(compute.commandBuffer, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, queryPool, 1);
 		addMemoryBarrier(VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 
 		vkCmdPushConstants(computeCommandBuffer, compute.pipelineLayouts.multiRadixSort, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(compute.pushConstants), &compute.pushConstants);
-
 		vkCmdBindPipeline(computeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute.pipelines[2]);
-
 		vkCmdBindDescriptorSets(computeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute.pipelineLayouts.multiRadixSort, 0, 1, &compute.descriptorSets.multiRadixSort, 0, 0);
-
+		vkCmdWriteTimestamp(compute.commandBuffer, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, queryPool, 2);
 		vkCmdDispatch(compute.commandBuffer, (scene.numpoint + 256 - 1) / 256, 1, 1);
-
+		vkCmdWriteTimestamp(compute.commandBuffer, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, queryPool, 3);
 		addMemoryBarrier(VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 
 		compute.pushConstants.shift = 8;
-		
 		vkCmdPushConstants(computeCommandBuffer, compute.pipelineLayouts.multiRadixSortHistograms2, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(compute.pushConstants), &compute.pushConstants);
-
 		vkCmdBindPipeline(computeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute.pipelines[3]);
-
 		vkCmdBindDescriptorSets(computeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute.pipelineLayouts.multiRadixSortHistograms2, 0, 1, &compute.descriptorSets.multiRadixSortHistograms2, 0, 0);
-		
+		vkCmdWriteTimestamp(compute.commandBuffer, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, queryPool, 4);
 		vkCmdDispatch(compute.commandBuffer, (scene.numpoint + 256 - 1) / 256, 1, 1);
-
+		vkCmdWriteTimestamp(compute.commandBuffer, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, queryPool, 5);
 		addMemoryBarrier(VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 
 		vkCmdPushConstants(computeCommandBuffer, compute.pipelineLayouts.multiRadixSort2, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(compute.pushConstants), &compute.pushConstants);
-
 		vkCmdBindPipeline(computeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute.pipelines[4]);
-
 		vkCmdBindDescriptorSets(computeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute.pipelineLayouts.multiRadixSort2, 0, 1, &compute.descriptorSets.multiRadixSort2, 0, 0);
-		
+		vkCmdWriteTimestamp(compute.commandBuffer, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, queryPool, 6);
 		vkCmdDispatch(compute.commandBuffer, (scene.numpoint + 256 - 1) / 256, 1, 1);
-
+		vkCmdWriteTimestamp(compute.commandBuffer, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, queryPool, 7);
 		addMemoryBarrier(VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 
 		compute.pushConstants.shift = 16;
-		
 		vkCmdPushConstants(computeCommandBuffer, compute.pipelineLayouts.multiRadixSortHistograms, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(compute.pushConstants), &compute.pushConstants);
-		
 		vkCmdBindPipeline(computeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute.pipelines[1]);
-
 		vkCmdBindDescriptorSets(computeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute.pipelineLayouts.multiRadixSortHistograms, 0, 1, &compute.descriptorSets.multiRadixSortHistograms, 0, 0);
-		
+		vkCmdWriteTimestamp(compute.commandBuffer, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, queryPool, 8);
 		vkCmdDispatch(compute.commandBuffer, (scene.numpoint + 256 - 1) / 256, 1, 1);
-
+		vkCmdWriteTimestamp(compute.commandBuffer, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, queryPool, 9);
 		addMemoryBarrier(VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 
 		vkCmdPushConstants(computeCommandBuffer, compute.pipelineLayouts.multiRadixSort, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(compute.pushConstants), &compute.pushConstants);
-		
 		vkCmdBindPipeline(computeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute.pipelines[2]);
-
 		vkCmdBindDescriptorSets(computeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute.pipelineLayouts.multiRadixSort, 0, 1, &compute.descriptorSets.multiRadixSort, 0, 0);
-		
+		vkCmdWriteTimestamp(compute.commandBuffer, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, queryPool, 10);
 		vkCmdDispatch(compute.commandBuffer, (scene.numpoint + 256 - 1) / 256, 1, 1);
-
+		vkCmdWriteTimestamp(compute.commandBuffer, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, queryPool, 11);
 		addMemoryBarrier(VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 
 		compute.pushConstants.shift = 24;
-		
 		vkCmdPushConstants(computeCommandBuffer, compute.pipelineLayouts.multiRadixSortHistograms2, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(compute.pushConstants), &compute.pushConstants);
-		
 		vkCmdBindPipeline(computeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute.pipelines[3]);
-
 		vkCmdBindDescriptorSets(computeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute.pipelineLayouts.multiRadixSortHistograms2, 0, 1, &compute.descriptorSets.multiRadixSortHistograms2, 0, 0);
-		
+		vkCmdWriteTimestamp(compute.commandBuffer, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, queryPool, 12);
 		vkCmdDispatch(compute.commandBuffer, (scene.numpoint + 256 - 1) / 256, 1, 1);
-
+		vkCmdWriteTimestamp(compute.commandBuffer, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, queryPool, 13);
 		addMemoryBarrier(VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 
 		vkCmdPushConstants(computeCommandBuffer, compute.pipelineLayouts.multiRadixSort2, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(compute.pushConstants), &compute.pushConstants);
-		
 		vkCmdBindPipeline(computeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute.pipelines[4]);
-		
 		vkCmdBindDescriptorSets(computeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute.pipelineLayouts.multiRadixSort2, 0, 1, &compute.descriptorSets.multiRadixSort2, 0, 0);
-		
+		vkCmdWriteTimestamp(compute.commandBuffer, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, queryPool, 14);
 		vkCmdDispatch(compute.commandBuffer, (scene.numpoint + 256 - 1) / 256, 1, 1);
-
+		vkCmdWriteTimestamp(compute.commandBuffer, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, queryPool, 15);
 		addMemoryBarrier(VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 
-		vkCmdWriteTimestamp(compute.commandBuffer, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, queryPool, 0);
-
 		vkCmdBindPipeline(computeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute.pipelines[0]);
-
 		vkCmdBindDescriptorSets(computeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute.pipelineLayouts.raytracing, 0, 1, &compute.descriptorSets.raytracing, 0, 0);
-
+		vkCmdWriteTimestamp(compute.commandBuffer, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, queryPool, 16);
 		vkCmdDispatch(compute.commandBuffer, (scene.numpoint + 1024 - 1) / 1024, 1, 1);
-
-		vkCmdWriteTimestamp(compute.commandBuffer, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, queryPool, 1);
-
+		vkCmdWriteTimestamp(compute.commandBuffer, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, queryPool, 17);
 		vkEndCommandBuffer(compute.commandBuffer);
 	}
 
@@ -1095,27 +1069,26 @@ public:
 		prepared = true;
 	}
 
-	Clock clock;
 	int frequency = 0;
 	virtual void render()
 	{
 		if (!prepared)
 			return;
 
-		clock.begin();
 		draw();
 		vkWaitForFences(device, 1, &compute.fence, VK_TRUE, UINT64_MAX);
-		clock.end();
-		printf("%lf\n", clock.getInterval());
 		getQueryResults();
-		printf("GPU %f\n", (timestamps[1] - timestamps[0]) * timeStampPeriod);
+		for (int i = 1,shift=0; i < 16; i +=2,shift+=8) {
+			printf("%d:  %f\n", shift,(timestamps[i] - timestamps[i-1]) * timeStampPeriod);
+		}
+		printf("GPU:  %f\n",(timestamps[17] - timestamps[16]) * timeStampPeriod);
 		if (!paused || camera.updated)
 		{
 			updateLight();
 			updateUniformBuffers();
 		}
 		frequency++;
-		if (frequency == 1)
+		if (frequency == 10)
 			getresult();
 	}
 
@@ -1171,7 +1144,7 @@ public:
 		copyCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
 		copyRegion = {};
 		copyRegion.size = bufferSize;
-		vkCmdCopyBuffer(copyCmd, compute.morton_in.buffer, readBuffer.buffer, 1, &copyRegion);
+		vkCmdCopyBuffer(copyCmd, compute.points.buffer, readBuffer.buffer, 1, &copyRegion);
 		vulkanDevice->flushCommandBuffer(copyCmd, queue, true);
 
 		glm::uint* morton = new glm::uint[scene.numpoint];
